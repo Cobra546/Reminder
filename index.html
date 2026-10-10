@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#130f1c">
+  <meta name="description" content="A little birthday countdown made with love.">
+  <title>Keenoo's Birthday Countdown ❤️</title>
+  <style>
+    :root{color-scheme:dark;--bg:#130f1c;--panel:#21182b;--pink:#ff82b2;--muted:#c9bfd3}
+    *{box-sizing:border-box} body{margin:0;min-height:100vh;display:grid;place-items:center;padding:22px;background:radial-gradient(circle at 50% 0,#42213d 0,transparent 48%),var(--bg);font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#fff}
+    main{width:min(100%,480px);text-align:center;padding:30px 22px;border:1px solid #ffffff1c;border-radius:28px;background:#21182bd9;box-shadow:0 24px 70px #0005}
+    .heart{font-size:42px;animation:pulse 1.6s infinite}.eyebrow{color:var(--pink);letter-spacing:.16em;text-transform:uppercase;font-size:.72rem;font-weight:800}
+    h1{font-size:clamp(2rem,8vw,3.1rem);line-height:1.05;margin:12px 0}.sub{color:var(--muted);line-height:1.6}
+    .timer{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:24px 0}.unit{padding:13px 4px;border-radius:16px;background:#ffffff0a;border:1px solid #ffffff14}.num{font-size:clamp(1.35rem,6vw,2rem);font-weight:850;color:var(--pink);font-variant-numeric:tabular-nums}.label{font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+    button{width:100%;border:0;border-radius:14px;padding:15px 18px;font-size:1rem;font-weight:800;background:linear-gradient(135deg,#ff9ac3,#ff6d9e);color:#321324;cursor:pointer;margin-top:8px}
+    button:disabled{opacity:.65;cursor:default}.status{min-height:42px;margin-top:14px;color:var(--muted);font-size:.88rem;line-height:1.5}.tiny{font-size:.75rem;color:#a99db6;margin-top:18px;line-height:1.5}
+    @keyframes pulse{50%{transform:scale(1.1)}} @media(prefers-reduced-motion:reduce){.heart{animation:none}}
+  </style>
+</head>
+<body>
+<main>
+  <div class="heart" aria-hidden="true">❤️</div>
+  <div class="eyebrow">A little surprise for</div>
+  <h1>Keenoo</h1>
+  <p class="sub">Every minute brings us closer to your special day. ✨</p>
+  <div class="timer" aria-label="Countdown">
+    <div class="unit"><div class="num" id="days">—</div><div class="label">Days</div></div>
+    <div class="unit"><div class="num" id="hours">—</div><div class="label">Hours</div></div>
+    <div class="unit"><div class="num" id="mins">—</div><div class="label">Minutes</div></div>
+    <div class="unit"><div class="num" id="secs">—</div><div class="label">Seconds</div></div>
+  </div>
+  <p class="sub" id="message">Your countdown is waiting…</p>
+  <button id="enable">Enable birthday notifications 🔔</button>
+  <div class="status" id="status">Open this page and allow notifications to receive the scheduled birthday alerts.</div>
+  <div class="tiny">Notifications require permission. Delivery depends on browser, device, network and push-service availability. For iPhone, add this website to the Home Screen first (iOS 16.4+).</div>
+</main>
+<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+<script>
+  // Replace this with your OneSignal App ID after creating the app.
+  const ONESIGNAL_APP_ID = "YOUR_ONESIGNAL_APP_ID";
+  const target = new Date("2027-06-01T19:00:00Z"); // June 2, 2027 00:00 in Asia/Karachi
+  const $ = id => document.getElementById(id);
+  function tick(){
+    let ms = Math.max(0, target.getTime() - Date.now());
+    const days = Math.floor(ms / 86400000); ms %= 86400000;
+    const hours = Math.floor(ms / 3600000); ms %= 3600000;
+    const mins = Math.floor(ms / 60000); ms %= 60000;
+    const secs = Math.floor(ms / 1000);
+    $("days").textContent = days; $("hours").textContent = hours;
+    $("mins").textContent = mins; $("secs").textContent = secs;
+    $("message").textContent = Date.now() >= target.getTime()
+      ? "It's your birthday, Keenoo! Happy Birthday ❤️🎂"
+      : "Countdown to 2 June 2027 — Karachi time ✨";
+  }
+  tick(); setInterval(tick, 1000);
+
+  window.OneSignalDeferred = window.OneSignalDeferred || [];
+  OneSignalDeferred.push(async function(OneSignal) {
+    try {
+      if (ONESIGNAL_APP_ID === "YOUR_ONESIGNAL_APP_ID") {
+        $("status").textContent = "Setup needed: add your OneSignal App ID in index.html before enabling notifications.";
+        $("enable").disabled = true; return;
+      }
+      await OneSignal.init({
+        appId: ONESIGNAL_APP_ID,
+        serviceWorkerPath: "OneSignalSDKWorker.js",
+        serviceWorkerParam: { scope: "/" }
+      });
+      $("enable").addEventListener("click", async () => {
+        $("enable").disabled = true;
+        try {
+          await OneSignal.login("keenoo-birthday-recipient");
+          await OneSignal.Notifications.requestPermission();
+          const permitted = await OneSignal.Notifications.permission;
+          $("status").textContent = permitted
+            ? "Notifications enabled on this device ❤️ You can close the page."
+            : "Notifications were not allowed. Enable them in your browser settings and try again.";
+          if (!permitted) $("enable").disabled = false;
+        } catch (e) {
+          $("status").textContent = "Could not enable notifications. Check the site is HTTPS and try again.";
+          $("enable").disabled = false;
+        }
+      });
+    } catch(e) {
+      $("status").textContent = "Push setup is not complete yet. Check the OneSignal setup instructions.";
+    }
+  });
+</script>
+</body>
+</html>
