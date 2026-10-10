@@ -65,7 +65,7 @@
       await OneSignal.init({
         appId: ONESIGNAL_APP_ID,
         serviceWorkerPath: "OneSignalSDKWorker.js",
-        serviceWorkerParam: { scope: "/" }
+        serviceWorkerParam: { scope: location.pathname.startsWith("/Reminder/") ? "/Reminder/" : "/" }
       });
       $("enable").addEventListener("click", async () => {
         $("enable").disabled = true;
