@@ -38,29 +38,39 @@ function scheduledMessage(now: Date): { key: string; message: string } | null {
   return null;
 }
 
+async function sha256Hex(value: string): Promise<string> {
+  const bytes = new TextEncoder().encode(value);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, "0")).join("");
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
-  const secret = Deno.env.get("CRON_SECRET");
-  if (!secret || req.headers.get("x-cron-secret") !== secret) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401, headers: { ...cors, "Content-Type": "application/json" },
-    });
-  }
 
   const url = Deno.env.get("SUPABASE_URL");
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !serviceKey) {
+    return Response.json({ error: "Missing Supabase server configuration" }, { status: 500, headers: cors });
+  }
+
+  const supabase = createClient(url, serviceKey);
+  const providedSecret = req.headers.get("x-cron-secret") ?? "";
+  const { data: config, error: configError } = await supabase
+    .from("birthday_push_config").select("cron_secret_hash").eq("id", 1).maybeSingle();
+  if (configError || !config?.cron_secret_hash || !providedSecret ||
+      await sha256Hex(providedSecret) !== config.cron_secret_hash) {
+    return Response.json({ error: "Unauthorized" }, { status: 401, headers: cors });
+  }
+
   const appId = Deno.env.get("ONESIGNAL_APP_ID");
   const apiKey = Deno.env.get("ONESIGNAL_REST_API_KEY");
-  if (!url || !serviceKey || !appId || !apiKey) {
-    return new Response(JSON.stringify({ error: "Missing server secrets" }), {
-      status: 500, headers: { ...cors, "Content-Type": "application/json" },
-    });
+  if (!appId || !apiKey) {
+    return Response.json({ error: "Missing OneSignal server secrets" }, { status: 500, headers: cors });
   }
 
   const due = scheduledMessage(new Date());
   if (!due) return Response.json({ ok: true, sent: false, reason: "No notification scheduled now" }, { headers: cors });
 
-  const supabase = createClient(url, serviceKey);
   const { error: insertError } = await supabase.from("birthday_push_log")
     .insert({ scheduled_key: due.key, message: due.message, status: "pending" });
 
