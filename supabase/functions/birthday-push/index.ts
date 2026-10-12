@@ -62,7 +62,7 @@ Deno.serve(async (req) => {
     return Response.json({ error: "Unauthorized" }, { status: 401, headers: cors });
   }
 
-  const appId = Deno.env.get("ONESIGNAL_APP_ID");
+  const appId = Deno.env.get("ONESIGNAL_APP_ID") ?? "85ea40a7-0fc8-4c54-9bdb-af6ee8764d8c";
   const apiKey = Deno.env.get("ONESIGNAL_REST_API_KEY");
   if (!appId || !apiKey) {
     return Response.json({ error: "Missing OneSignal server secrets" }, { status: 500, headers: cors });
@@ -97,7 +97,7 @@ Deno.serve(async (req) => {
       include_aliases: { external_id: ["keenoo-birthday-recipient"] },
       headings: { en: "Keenoo ❤️" },
       contents: { en: due.message },
-      url: Deno.env.get("BIRTHDAY_SITE_URL") ?? undefined,
+      url: Deno.env.get("BIRTHDAY_SITE_URL") ?? "https://cobra546.github.io/Reminder/",
     }),
   });
 
