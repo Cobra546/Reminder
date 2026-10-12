@@ -32,13 +32,12 @@
   </div>
   <p class="sub" id="message">Your countdown is waiting…</p>
   <button id="enable">Enable birthday notifications 🔔</button>
-  <div class="status" id="status">Open this page and allow notifications to receive the scheduled birthday alerts.</div>
+  <div class="status" id="status">Tap the button on this device and allow notifications to receive birthday alerts.</div>
   <div class="tiny">Notifications require permission. Delivery depends on browser, device, network and push-service availability. For iPhone, add this website to the Home Screen first (iOS 16.4+).</div>
 </main>
 <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
 <script>
-  // Replace this with your OneSignal App ID after creating the app.
-  const ONESIGNAL_APP_ID = "YOUR_ONESIGNAL_APP_ID";
+  const ONESIGNAL_APP_ID = "85ea40a7-0fc8-4c54-9bdb-af6ee8764d8c";
   const target = new Date("2027-06-01T19:00:00Z"); // June 2, 2027 00:00 in Asia/Karachi
   const $ = id => document.getElementById(id);
   function tick(){
@@ -58,10 +57,6 @@
   window.OneSignalDeferred = window.OneSignalDeferred || [];
   OneSignalDeferred.push(async function(OneSignal) {
     try {
-      if (ONESIGNAL_APP_ID === "YOUR_ONESIGNAL_APP_ID") {
-        $("status").textContent = "Setup needed: add your OneSignal App ID in index.html before enabling notifications.";
-        $("enable").disabled = true; return;
-      }
       await OneSignal.init({
         appId: ONESIGNAL_APP_ID,
         serviceWorkerPath: "OneSignalSDKWorker.js",
@@ -70,20 +65,22 @@
       $("enable").addEventListener("click", async () => {
         $("enable").disabled = true;
         try {
-          await OneSignal.login("keenoo-birthday-recipient");
           await OneSignal.Notifications.requestPermission();
-          const permitted = await OneSignal.Notifications.permission;
-          $("status").textContent = permitted
-            ? "Notifications enabled on this device ❤️ You can close the page."
-            : "Notifications were not allowed. Enable them in your browser settings and try again.";
-          if (!permitted) $("enable").disabled = false;
+          const permitted = OneSignal.Notifications.permission;
+          if (permitted) {
+            await OneSignal.login("keenoo-birthday-recipient");
+            $("status").textContent = "Notifications enabled on this device ❤️ You can close the page.";
+          } else {
+            $("status").textContent = "Notifications were not allowed. Enable them in your browser settings and try again.";
+            $("enable").disabled = false;
+          }
         } catch (e) {
           $("status").textContent = "Could not enable notifications. Check the site is HTTPS and try again.";
           $("enable").disabled = false;
         }
       });
     } catch(e) {
-      $("status").textContent = "Push setup is not complete yet. Check the OneSignal setup instructions.";
+      $("status").textContent = "Push setup could not initialize. Refresh this page and try again.";
     }
   });
 </script>
