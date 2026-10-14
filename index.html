@@ -59,8 +59,8 @@
     try {
       await OneSignal.init({
         appId: ONESIGNAL_APP_ID,
-        serviceWorkerPath: "OneSignalSDKWorker.js",
-        serviceWorkerParam: { scope: location.pathname.startsWith("/Reminder/") ? "/Reminder/" : "/" }
+        serviceWorkerPath: "/Reminder/OneSignalSDKWorker.js",
+        serviceWorkerParam: { scope: "/Reminder/" }
       });
       $("enable").addEventListener("click", async () => {
         $("enable").disabled = true;
@@ -69,7 +69,14 @@
           const permitted = OneSignal.Notifications.permission;
           if (permitted) {
             await OneSignal.login("keenoo-birthday-recipient");
-            $("status").textContent = "Notifications enabled on this device ❤️ You can close the page.";
+            await OneSignal.User.PushSubscription.optIn();
+            const optedIn = OneSignal.User.PushSubscription.optedIn;
+            if (optedIn) {
+              $("status").textContent = "Notifications subscribed on this device ❤️ You can close the page.";
+            } else {
+              $("status").textContent = "Browser permission is allowed, but OneSignal has not completed the push subscription yet. Refresh and try again.";
+              $("enable").disabled = false;
+            }
           } else {
             $("status").textContent = "Notifications were not allowed. Enable them in your browser settings and try again.";
             $("enable").disabled = false;
